@@ -1,0 +1,116 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = ""
+}
+
+model accounts {
+  id                      String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email                   String         @unique @db.VarChar(255)
+  phone                   String?        @db.VarChar(255)
+  password                String
+  notification_token      String?
+  subscribtion_expires_at DateTime       @db.Timestamp(6)
+  tg_chat_id              String?        @db.VarChar(255)
+  tg_user_id              String?        @db.VarChar(255)
+  tg_username             String?        @db.VarChar(255)
+  plan                    String?        @db.VarChar(255)
+  transactions            transactions[]
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model accounts_securities {
+  account_id                String    @db.Uuid
+  sec_id                    String    @db.VarChar
+  goal_1                    Decimal?  @db.Decimal
+  goal_2                    Decimal?  @db.Decimal
+  price_threshold_to_notify Decimal?  @default(0.5) @db.Decimal
+  last_notified_at          DateTime? @db.Timestamp(6)
+  notify_at                 DateTime? @db.Timestamp(6)
+  notification_topic        String?
+
+  @@ignore
+}
+
+model alerts {
+  secid                String    @unique @db.VarChar(255)
+  high_20_threshold_at DateTime? @db.Timestamp(6)
+  high_20_break_at     DateTime? @db.Timestamp(6)
+  high_60_threshold_at DateTime? @db.Timestamp(6)
+  high_60_break_at     DateTime? @db.Timestamp(6)
+  low_20_threshold_at  DateTime? @db.Timestamp(6)
+  low_20_break_at      DateTime? @db.Timestamp(6)
+  low_60_threshold_at  DateTime? @db.Timestamp(6)
+  low_60_break_at      DateTime? @db.Timestamp(6)
+}
+
+model instruments {
+  ticker   String  @id @db.VarChar(100)
+  name     String?
+  sector   String?
+  source   String? @db.VarChar(100)
+  currency String? @db.VarChar(100)
+}
+
+model plans {
+  id           String         @id @unique(map: "plans_id_index") @db.VarChar(255)
+  name         String         @db.VarChar(255)
+  desc         String?        @db.VarChar(1000)
+  price        Decimal        @db.Decimal(10, 2)
+  days         Int
+  transactions transactions[]
+}
+
+model schema_migrations {
+  id          BigInt    @unique
+  applied     DateTime? @db.Timestamp(6)
+  description String?   @db.VarChar(1024)
+}
+
+model securities {
+  secid                   String    @id @db.VarChar(100)
+  short_name              String?
+  description             String?
+  current_low             Decimal?  @db.Decimal
+  current_high            Decimal?  @db.Decimal
+  current_last            Decimal?  @db.Decimal
+  current_last_trade_date String?
+  current_updated_at      DateTime? @db.Timestamp(6)
+  min_low_20              Decimal?  @db.Decimal
+  min_low_20_date         String?
+  diff_low_20             Decimal?  @db.Decimal
+  min_low_20_updated_at   DateTime? @db.Timestamp(6)
+  max_high_20             Decimal?  @db.Decimal
+  max_high_20_date        String?
+  diff_high_20            Decimal?  @db.Decimal
+  max_high_20_updated_at  DateTime? @db.Timestamp(6)
+  min_low_60              Decimal?  @db.Decimal
+  min_low_60_date         String?
+  diff_low_60             Decimal?  @db.Decimal
+  min_low_60_updated_at   DateTime? @db.Timestamp(6)
+  max_high_60             Decimal?  @db.Decimal
+  max_high_60_date        String?
+  diff_high_60            Decimal?  @db.Decimal
+  max_high_60_updated_at  DateTime? @db.Timestamp(6)
+  kind                    String?   @db.VarChar(255)
+}
+
+model transactions {
+  id          BigInt    @id @default(autoincrement())
+  account_id  String?   @db.Uuid
+  plan_id     String?   @db.VarChar(255)
+  external_id String?   @db.VarChar(255)
+  email       String    @db.VarChar(255)
+  status      String    @db.VarChar(255)
+  amount      Decimal   @db.Decimal(10, 2)
+  inserted_at DateTime  @db.Timestamp(0)
+  updated_at  DateTime  @db.Timestamp(0)
+  accounts    accounts? @relation(fields: [account_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  plans       plans?    @relation(fields: [plan_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([account_id], map: "transactions_account_id_index")
+  @@index([status], map: "transactions_status_index")
+}
